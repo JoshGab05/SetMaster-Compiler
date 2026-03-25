@@ -1,0 +1,5 @@
+SET_START
+ConjuntoA = {1, 2, 3}
+ConjuntoB = {4, 5, 6}
+@ 
+SET_END
