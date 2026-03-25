@@ -1,0 +1,41 @@
+🛠️ Hoja de Ruta: Responsabilidades por Rama
+
+
+
+1. feature/lexico (El Traductor)
+El encargado de esta rama es el primer filtro. Su trabajo es convertir el texto bruto del archivo .txt en unidades con significado (tokens).
+•	Tarea Principal: Crear el archivo lexer.flex.
+•	Responsabilidades:
+o	Definir las Expresiones Regulares para: SET_START, SET_END, identificadores de conjuntos (ej. A, Conjunto1), elementos (números o letras) y los operadores ($U, \cap, -, \Delta$).
+o	Manejo de Errores: Configurar JFlex para que, si encuentra un símbolo extraño (como un @ o #), reporte el error indicando la línea y columna exacta.
+o	Ignorar el "Ruido": Configurar el lexer para que ignore espacios en blanco, tabulaciones y saltos de línea sin romper el flujo.
+
+
+
+
+2. feature/sintactico (El Arquitecto)
+Este encargado no ve caracteres, ve estructuras. Su trabajo es validar que el orden de los tokens tenga sentido lógico.
+•	Tarea Principal: Crear el archivo parser.cup.
+•	Responsabilidades:
+o	Definir la Gramática: Establecer las reglas (ej. "Un conjunto debe empezar con SET_START, seguido de un nombre, un = y terminar con SET_END").
+o	Jerarquía de Operaciones: Decidir qué operación se ejecuta primero (ej. ¿La intersección tiene más peso que la unión?).
+o	Árbol de Derivación: Preparar el terreno para que, al reconocer una estructura válida, se puedan ejecutar acciones (como guardar en la tabla de símbolos).
+
+
+
+3. feature/semantico (El Validador de Reglas)
+Mientras que el sintáctico revisa la "forma", el semántico revisa el "fondo" o el significado.
+•	Tarea Principal: Implementar la TablaSimbolos.java.
+•	Responsabilidades:
+o	Unicidad de Elementos: Asegurar que si el usuario escribe $A = \{1, 2, 2, 3\}$, el sistema guarde solo $\{1, 2, 3\}$.
+o	Existencia de Conjuntos: Validar que si el usuario intenta hacer A U B, ambos conjuntos A y B hayan sido declarados previamente.
+o	Gestión de Memoria: Almacenar los nombres de los conjuntos y sus contenidos en una estructura eficiente (como el HashMap que mencioné antes).
+
+
+
+4. feature/graficador (El Visualizador)
+Esta rama se encarga de la salida amigable para el usuario.
+•	Tarea Principal: Crear un módulo que tome los datos de la Tabla de Símbolos y los muestre.
+•	Responsabilidades:
+o	Consola Limpia: Mostrar los resultados de las operaciones de conjuntos de forma legible.
+o	Reporte de Tokens: Crear la tabla visual de los tokens encontrados durante la fase léxica (Token | Lexema | Línea | Columna).
