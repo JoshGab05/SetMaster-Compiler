@@ -1,0 +1,10 @@
+"Estoy trabajando en una parte específica de un compilador para el lenguaje 'SetMaster X' en Java. 
+Mi rol es: [INSERTAR AQUÍ: Léxico / Sintaxis / Semántica / Visualización]. 
+
+Contexto del Proyecto:
+- Usamos JFlex para el scanner y JCUP para el parser[cite: 10, 17].
+- El lenguaje usa delimitadores SET_START y SET_END[cite: 21].
+- Debe manejar operaciones de conjuntos: Unión (U), Intersección (∩), Diferencia (-) y Diferencia Simétrica (Δ)[cite: 29, 30, 31, 32].
+
+Pregunta:
+¿Cómo puedo crear una clase 'Tester' en Java para probar mi módulo de forma aislada (Unit Testing) sin depender de que las otras partes del compilador estén terminadas? Dame un ejemplo de código de prueba para mi área."

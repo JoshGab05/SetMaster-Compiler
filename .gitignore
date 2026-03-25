@@ -1,0 +1,24 @@
+# Java binarios
+*.class
+*.jar
+*.war
+*.ear
+
+# JFlex y JCUP (Archivos generados, no los fuentes)
+# Nota: No ignorar Lexer.java si prefieren subirlo ya generado
+# src/lexico/Lexer.java
+# src/sintactico/Parser.java
+# src/sintactico/sym.java
+
+# Carpetas de IDE (VS Code, IntelliJ, Eclipse)
+.settings/
+.classpath
+.project
+.idea/
+*.iml
+.vscode/
+bin/
+
+# Temporales y Logs
+*.log
+tmp/
