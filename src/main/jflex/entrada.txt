@@ -1,0 +1,6 @@
+SET_START
+    Nombre_Programa
+    Conjunto_A = {1, 2, 3}
+    Conjunto_B = {3, 4, 5}
+    Resultado = Conjunto_A U Conjunto_B
+SET_END
