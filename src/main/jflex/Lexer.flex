@@ -1,74 +1,72 @@
 import java_cup.runtime.*;
 
 %%
-%class Lexer
-%unicode
-%cup
-%line
-%column
+/* --- CONFIGURACIÓN DE JFLEX --- */
+%class Lexer               /* Nombre de la clase generada */
+%unicode                   /* Soporte para caracteres Unicode (∩, Δ, ∈) */
+%cup                       /* Compatibilidad con Java Cup */
+%line                      /* Activa el conteo de líneas para reportar errores */
+%column                    /* Activa el conteo de columnas para reportar errores */
 
 %{
-  private Symbol symbol(int type) {
-    return new Symbol(type, yyline + 1, yycolumn + 1);
-  }
+  /* Método auxiliar para crear objetos de tipo Symbol con valor */
   private Symbol symbol(int type, Object value) {
     return new Symbol(type, yyline + 1, yycolumn + 1, value);
   }
 %}
 
-/* --- SECCIÓN DE MACROS --- */
+/* --- DEFINICIÓN DE MACROS (Expresiones Regulares) --- */
 LineTerminator = \r|\n|\r\n
 WhiteSpace     = {LineTerminator} | [ \t\f]
-/* IMPORTANTE: Agregamos el "_" para que acepte Conjunto_A */
+/* Identificador: Debe empezar con letra, seguido de letras, números o guion bajo (_) */
 Identifier     = [a-zA-Z][a-zA-Z0-9_]*
-/* Esta es la macro que te faltaba */
-Number         = [0-9]+      
+/* Número: Uno o más dígitos del 0 al 9 */
+Number         = [0-9]+
 
 %%
 
+/* --- REGLAS LÉXICAS --- */
 <YYINITIAL> {
-    /* Delimitadores de Bloque [cite: 21] */
+    /* Palabras Reservadas de Estructura */
     "SET_START"      { return symbol(sym.SET_START, yytext()); }
     "SET_END"        { return symbol(sym.SET_END, yytext()); }
 
-  /* Nuevas Reglas */
-    "="         { return symbol(sym.ASIGNACION, yytext()); }
-    "{"         { return symbol(sym.LLAVE_A, yytext()); }
-    "}"         { return symbol(sym.LLAVE_C, yytext()); }
-    ","         { return symbol(sym.COMA, yytext()); }
-    
-    /* Estructuras y Puntuación [cite: 23, 44] */
-    "{"              { return symbol(sym.LLAVE_A, yytext()); }
-    "}"              { return symbol(sym.LLAVE_C, yytext()); }
-    "("              { return symbol(sym.PAR_A, yytext()); }
-    ")"              { return symbol(sym.PAR_C, yytext()); }
-    ","              { return symbol(sym.COMA, yytext()); }
-
-    /* Operadores de Conjuntos [cite: 29, 30, 31, 32] */
+    /* Operadores de Conjuntos */
     "U"              { return symbol(sym.UNION, yytext()); }
     "\u2229"         { return symbol(sym.INTERSECCION, yytext()); } 
     "-"              { return symbol(sym.DIFERENCIA, yytext()); }
     "\u0394"         { return symbol(sym.DIF_SIMETRICA, yytext()); }
 
-    /* Relacionales [cite: 24, 36] */
+    /* Símbolos Relacionales y Lógicos */
     "=="             { return symbol(sym.IGUALDAD, yytext()); }
     "\u2208"         { return symbol(sym.PERTENENCIA, yytext()); }
     "\u2286"         { return symbol(sym.CONTENCION, yytext()); }
+    "="              { return symbol(sym.ASIGNACION, yytext()); }
 
-    /* Control y Gráficos [cite: 38, 40] */
+    /* Estructuras de Control y Funciones */
     "SI"             { return symbol(sym.SI, yytext()); }
     "ENTONCES"       { return symbol(sym.ENTONCES, yytext()); }
     "PARA_CADA"      { return symbol(sym.PARA_CADA, yytext()); }
     "EN"             { return symbol(sym.EN, yytext()); }
     "VENN"           { return symbol(sym.VENN, yytext()); }
 
-    /* Identificadores y Números [cite: 25] */
+    /* Signos de Agrupación y Puntuación */
+    "{"              { return symbol(sym.LLAVE_A, yytext()); }
+    "}"              { return symbol(sym.LLAVE_C, yytext()); }
+    "("              { return symbol(sym.PAR_A, yytext()); }
+    ")"              { return symbol(sym.PAR_C, yytext()); }
+    ","              { return symbol(sym.COMA, yytext()); }
+
+    /* Aplicación de Macros */
     {Identifier}     { return symbol(sym.IDENTIFICADOR, yytext()); }
     {Number}         { return symbol(sym.NUMERO, yytext()); }
 
-    {WhiteSpace}     { /* Ignorar */ }
+    /* Ignorar Espacios en Blanco */
+    {WhiteSpace}     { /* No hacer nada */ }
 }
 
+/* --- GESTIÓN DE ERRORES LÉXICOS --- */
+/* Cualquier carácter que no coincida con lo anterior se reporta con línea y columna */
 . { 
-    System.err.println("Error léxico: <" + yytext() + "> en línea " + (yyline+1) + ", col " + (yycolumn+1)); 
+    System.err.println("Error lexico: <" + yytext() + "> en linea " + (yyline+1) + ", col " + (yycolumn+1)); 
 }
