@@ -18,6 +18,8 @@ import java_cup.runtime.*;
 /* --- DEFINICIÓN DE MACROS (Expresiones Regulares) --- */
 LineTerminator = \r|\n|\r\n
 WhiteSpace     = {LineTerminator} | [ \t\f]
+/* Macro para comentarios de una sola línea */
+Comentario     = "//" [^\r\n]* {LineTerminator}?
 /* Identificador: Debe empezar con letra, seguido de letras, números o guion bajo (_) */
 Identifier     = [a-zA-Z][a-zA-Z0-9_]*
 /* Número: Uno o más dígitos del 0 al 9 */
@@ -63,6 +65,7 @@ Number         = [0-9]+
 
     /* Ignorar Espacios en Blanco */
     {WhiteSpace}     { /* No hacer nada */ }
+    {Comentario}     { /* No hacer nada */ }
 }
 
 /* --- GESTIÓN DE ERRORES LÉXICOS --- */

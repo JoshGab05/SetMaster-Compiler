@@ -1,0 +1,120 @@
+import java_cup.runtime.*;
+import java.util.HashMap;
+
+/* 1. CODIGO DE USUARIO (Manejo de errores del Parser) */
+parser code {:
+    public void syntax_error(Symbol s) {
+        System.err.println("Error Sintactico en la Linea " + (s.left) + " Columna " + (s.right) + ". Texto: '" + s.value + "'");
+    }
+
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception {
+        System.err.println("Error Fatal. El analisis se detuvo en la Linea " + (s.left) + " Columna " + (s.right) + ".");
+    }
+:}
+
+/* 2. CODIGO DE ACCIONES (El puente hacia la Fase Semantica) */
+action code {:
+    // Aqui vive nuestra Tabla de Simbolos
+    public static HashMap<String, String> tablaSimbolos = new HashMap<>();
+
+    // Metodo para imprimir la tabla al terminar con exito
+    public void imprimirTabla() {
+        System.out.println("\n==========================================");
+        System.out.println("           TABLA DE SIMBOLOS              ");
+        System.out.println("==========================================");
+        System.out.printf("%-20s | %-15s\n", "IDENTIFICADOR", "TIPO/ESTADO");
+        System.out.println("------------------------------------------");
+        tablaSimbolos.forEach((id, valor) -> 
+            System.out.printf("%-20s | %-15s\n", id, valor)
+        );
+        System.out.println("==========================================");
+    }
+:}
+
+/* 3. TERMINALES */
+terminal SET_START, SET_END;
+terminal String IDENTIFICADOR, NUMERO; // Estos devuelven el String exacto ("Conjunto_A", "10")
+terminal ASIGNACION, UNION, INTERSECCION, DIFERENCIA, DIF_SIMETRICA;
+terminal LLAVE_A, LLAVE_C, PAR_A, PAR_C, COMA;
+terminal IGUALDAD, PERTENENCIA, CONTENCION;
+terminal SI, ENTONCES, PARA_CADA, EN, VENN;
+
+/* 4. NO TERMINALES */
+non terminal inicio, programa;
+non terminal lista_sentencias, sentencia;
+non terminal declaracion_conjunto, elementos_opcional, lista_elementos;
+non terminal expresion_conjunto;
+non terminal condicion_if, ciclo_para, funcion_venn;
+non terminal expresion_relacional;
+
+/* 5. PRECEDENCIA */
+precedence left UNION, DIFERENCIA, DIF_SIMETRICA;
+precedence left INTERSECCION;
+
+/* 6. GRAMATICA CON ACCIONES SEMANTICAS */
+start with inicio;
+
+// Cuando el programa termina correctamente, imprimimos la tabla
+inicio ::= SET_START programa SET_END 
+         {: imprimirTabla(); :}
+         | error SET_END
+         ;
+
+// Guardamos el nombre principal del programa
+programa ::= IDENTIFICADOR:nombre lista_sentencias
+           {: 
+               tablaSimbolos.put(nombre, "Nombre Programa"); 
+           :}
+           ;
+
+lista_sentencias ::= lista_sentencias sentencia
+                   | sentencia
+                   ;
+
+sentencia ::= declaracion_conjunto
+            | condicion_if
+            | ciclo_para
+            | funcion_venn
+            ;
+
+// Guardamos los conjuntos que se declaran en la tabla de simbolos
+declaracion_conjunto ::= IDENTIFICADOR:id ASIGNACION expresion_conjunto
+                       {: 
+                           tablaSimbolos.put(id, "Conj. (Operacion)"); 
+                       :}
+                       | IDENTIFICADOR:id ASIGNACION LLAVE_A elementos_opcional LLAVE_C
+                       {: 
+                           tablaSimbolos.put(id, "Conj. (Explicito)"); 
+                       :}
+                       ;
+
+elementos_opcional ::= lista_elementos
+                     | 
+                     ;
+
+lista_elementos ::= lista_elementos COMA NUMERO
+                  | NUMERO
+                  ;
+
+expresion_conjunto ::= expresion_conjunto UNION expresion_conjunto
+                     | expresion_conjunto INTERSECCION expresion_conjunto
+                     | expresion_conjunto DIFERENCIA expresion_conjunto
+                     | expresion_conjunto DIF_SIMETRICA expresion_conjunto
+                     | PAR_A expresion_conjunto PAR_C
+                     | IDENTIFICADOR
+                     ;
+
+condicion_if ::= SI PAR_A expresion_relacional PAR_C ENTONCES LLAVE_A lista_sentencias LLAVE_C
+               ;
+
+expresion_relacional ::= expresion_conjunto IGUALDAD expresion_conjunto
+                       | expresion_conjunto CONTENCION expresion_conjunto
+                       | NUMERO PERTENENCIA expresion_conjunto
+                       | IDENTIFICADOR PERTENENCIA expresion_conjunto
+                       ;
+
+ciclo_para ::= PARA_CADA PAR_A IDENTIFICADOR PAR_C EN PAR_A expresion_conjunto PAR_C LLAVE_A lista_sentencias LLAVE_C
+             ;
+
+funcion_venn ::= VENN PAR_A expresion_conjunto PAR_C
+               ;
