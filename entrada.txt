@@ -1,0 +1,16 @@
+SET_START
+    Mi_Proyecto_2024
+    
+    // Declaracion de conjuntos
+    Conjunto_Alfa = {10, 20}
+    Conjunto_Beta = {20, 30}
+    
+    // Operaciones validas
+    Resultado_1 = Conjunto_Alfa ∩ Conjunto_Beta
+    Resultado_2 = Conjunto_Alfa Δ Conjunto_Beta
+    
+    // Estructura de control
+    SI (Conjunto_Alfa == Conjunto_Beta) ENTONCES {
+        VENN(Resultado_1)
+    }
+SET_END

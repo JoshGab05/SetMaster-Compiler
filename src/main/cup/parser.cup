@@ -1,0 +1,188 @@
+import java_cup.runtime.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import semantico.*; // Importamos tus clases personalizadas
+
+/* 1. CODIGO DE USUARIO (Manejo de errores del Parser) */
+parser code {:
+    // Bandera pública para que Prueba.java pueda leer si algo falló
+    public boolean huboError = false;
+
+    public void syntax_error(Symbol s) {
+        huboError = true; // <-- Activamos la bandera aquí
+        System.err.println("Error Sintactico en la Linea " + (s.left) + " Columna " + (s.right) + ". Texto: '" + s.value + "'");
+    }
+
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception {
+        huboError = true; // <-- Activamos la bandera aquí también
+        System.err.println("Error Fatal. El analisis se detuvo en la Linea " + (s.left) + " Columna " + (s.right) + ".");
+    }
+:}
+
+/* 2. CODIGO DE ACCIONES (El puente hacia la Fase Semantica) */
+action code {:
+    // Instanciamos tu tabla de símbolos robusta
+    public static TablaSimbolos tablaReal = new TablaSimbolos();
+
+    // Método para imprimir la tabla al terminar con éxito
+    public void finalizarAnalisis() {
+        tablaReal.imprimirTabla();
+    }
+:}
+
+/* 3. TERMINALES */
+terminal SET_START, SET_END;
+terminal String IDENTIFICADOR, NUMERO; 
+terminal ASIGNACION, UNION, INTERSECCION, DIFERENCIA, DIF_SIMETRICA;
+terminal LLAVE_A, LLAVE_C, PAR_A, PAR_C, COMA;
+terminal IGUALDAD, PERTENENCIA, CONTENCION;
+terminal SI, ENTONCES, PARA_CADA, EN, VENN;
+
+/* 4. NO TERMINALES */
+non terminal inicio, programa;
+non terminal lista_sentencias, sentencia;
+non terminal declaracion_conjunto;
+non terminal HashSet<Object> elementos_opcional, lista_elementos; // Ahora transportan los elementos reales
+non terminal HashSet<Object> expresion_conjunto;                  // Resuelve operaciones semánticamente
+non terminal condicion_if, ciclo_para, funcion_venn;
+non terminal expresion_relacional;
+
+/* 5. PRECEDENCIA */
+precedence left UNION, DIFERENCIA, DIF_SIMETRICA;
+precedence left INTERSECCION;
+
+/* 6. GRAMATICA CON ACCIONES SEMANTICAS */
+start with inicio;
+
+inicio ::= SET_START programa SET_END 
+         {: finalizarAnalisis(); :}
+         | error SET_END
+         ;
+
+programa ::= IDENTIFICADOR:nombre lista_sentencias
+           {: 
+               tablaReal.insertar(nombre, "Nombre Programa", null); 
+           :}
+           ;
+
+lista_sentencias ::= lista_sentencias sentencia
+                   | sentencia
+                   ;
+
+sentencia ::= declaracion_conjunto
+            | condicion_if
+            | ciclo_para
+            | funcion_venn
+            ;
+
+// REGLA DE DECLARACIÓN: Registra el conjunto con sus elementos calculados
+declaracion_conjunto ::= IDENTIFICADOR:id ASIGNACION expresion_conjunto:res
+                       {: 
+                           tablaReal.insertar(id, "CONJUNTO", res); 
+                       :}
+                       | IDENTIFICADOR:id ASIGNACION LLAVE_A elementos_opcional:elementos LLAVE_C
+                       {: 
+                           tablaReal.insertar(id, "CONJUNTO", elementos); 
+                       :}
+                       ;
+
+elementos_opcional ::= lista_elementos:l {: RESULT = l; :}
+                     | {: RESULT = new HashSet<Object>(); :}
+                     ;
+
+lista_elementos ::= lista_elementos:l COMA NUMERO:n
+                  {: 
+                      l.add(Integer.parseInt(n)); 
+                      RESULT = l; 
+                  :}
+                  | NUMERO:n
+                  {: 
+                      HashSet<Object> nuevo = new HashSet<>();
+                      nuevo.add(Integer.parseInt(n)); 
+                      RESULT = nuevo; 
+                  :}
+                  ;
+
+// EVALUACIÓN SEMÁNTICA: Resuelve las operaciones matemáticas de conjuntos en tiempo de compilación
+expresion_conjunto ::= expresion_conjunto:e1 UNION expresion_conjunto:e2
+                     {:
+                         HashSet<Object> res = new HashSet<>(e1);
+                         res.addAll(e2); // Unión lógica
+                         RESULT = res;
+                     :}
+                     | expresion_conjunto:e1 INTERSECCION expresion_conjunto:e2
+                     {:
+                         HashSet<Object> res = new HashSet<>(e1);
+                         res.retainAll(e2); // Intersección lógica
+                         RESULT = res;
+                     :}
+                     | expresion_conjunto:e1 DIFERENCIA expresion_conjunto:e2
+                     {:
+                         HashSet<Object> res = new HashSet<>(e1);
+                         res.removeAll(e2); // Diferencia lógica
+                         RESULT = res;
+                     :}
+                     | expresion_conjunto:e1 DIF_SIMETRICA expresion_conjunto:e2
+                     {:
+                         // Diferencia simétrica: (A U B) - (A n B)
+                         HashSet<Object> union = new HashSet<>(e1); union.addAll(e2);
+                         HashSet<Object> inter = new HashSet<>(e1); inter.retainAll(e2);
+                         union.removeAll(inter);
+                         RESULT = union;
+                     :}
+                     | PAR_A expresion_conjunto:e PAR_C
+                     {: 
+                         RESULT = e; 
+                     :}
+                     | IDENTIFICADOR:id
+                     {: 
+                         // VALIDACIÓN SEMÁNTICA: ¿Existe el conjunto usado en la fórmula?
+                         Simbolo s = tablaReal.buscar(id);
+                         if(s == null) {
+                             // BLINDAJE: Activamos bandera para evitar falsos éxitos al terminar
+                             huboError = true;
+                             System.err.println("Error Semántico en compilación: Uso de variable no declarada '" + id + "'");
+                             RESULT = new HashSet<Object>();
+                         } else {
+                             RESULT = s.getElementos();
+                         }
+                     :}
+                     ;
+
+condicion_if ::= SI PAR_A expresion_relacional PAR_C ENTONCES LLAVE_A lista_sentencias LLAVE_C;
+
+expresion_relacional ::= expresion_conjunto IGUALDAD expresion_conjunto
+                       | expresion_conjunto CONTENCION expresion_conjunto
+                       | NUMERO PERTENENCIA expresion_conjunto
+                       | IDENTIFICADOR:id PERTENENCIA expresion_conjunto
+                       {:
+                           Simbolo s = tablaReal.buscar(id);
+                           if(s == null) {
+                               // BLINDAJE: Activamos bandera para la fase semántica relacional
+                               huboError = true;
+                               System.err.println("Error Semántico: La variable '" + id + "' usada en la condición de pertenencia no existe.");
+                           }
+                       :}
+                       ;
+
+ciclo_para ::= PARA_CADA PAR_A IDENTIFICADOR:id_elemento PAR_C EN PAR_A expresion_conjunto:conj PAR_C LLAVE_A 
+             {:
+                 // ACCIÓN INTERMEDIA: Registramos la variable local en la tabla
+                 // Le asignamos un tipo especial para indicar que representa a un elemento iterador
+                 tablaReal.insertar(id_elemento, "ELEMENTO_CONJUNTO", null);
+             :}
+             lista_sentencias LLAVE_C
+             {:
+                 // ACCIÓN FINAL: Limpiamos la tabla eliminando el iterador al cerrar el ciclo
+                 // Así evitamos que la variable contamine el resto del programa exterior
+                 tablaReal.eliminar(id_elemento);
+             :}
+             ;
+
+funcion_venn ::= VENN PAR_A expresion_conjunto:res PAR_C
+               {:
+                   System.out.println(">>> Solicitud de Gráfica detectada para los elementos: " + res);
+                   // Aquí tu compañero meterá su método, por ejemplo:
+                   // GraficadorVenn.generarURL(res);
+               :}
+               ;
