@@ -9,7 +9,6 @@ public class Prueba {
             System.out.println(">>> Iniciando Analisis Lexico y Sintactico para: " + rutaArchivo);
             System.out.println("---------------------------------------------------------");
             
-            // Forzamos la codificación UTF-8 para que reconozca los símbolos ∩ y Δ
             InputStreamReader lector = new InputStreamReader(new FileInputStream(rutaArchivo), "UTF-8");
             Lexer scanner = new Lexer(lector);
             
@@ -17,13 +16,19 @@ public class Prueba {
             sintactico.parse();
             
             System.out.println("---------------------------------------------------------");
-            System.out.println(">>> Analisis completado con EXITO. La estructura es valida. <<<");
+            
+            // CORREGIDO: Leemos directamente nuestra variable pública
+            if (sintactico.huboError) {
+                System.err.println(">>> EL ANÁLISIS FALLÓ. Se detectaron errores en el archivo de entrada. <<<");
+            } else {
+                System.out.println(">>> Analisis completado con EXITO. La estructura es valida. <<<");
+            }
             
         } catch (java.io.FileNotFoundException e) {
             System.err.println("Error: No se encontro el archivo " + rutaArchivo);
         } catch (Exception e) {
             System.out.println("---------------------------------------------------------");
-            System.err.println("Error Fatal: El analisis se detuvo debido a errores de sintaxis.");
+            System.err.println("Error Fatal: El analisis se detuvo completamente debido a un error no recuperable.");
         }
     }
 }
